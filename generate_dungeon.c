@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <math.h>
 
 #define HEIGHT 105
 #define WIDTH 160
@@ -23,12 +24,15 @@
 static char * TYPE_ROOM = "room";
 static char * TYPE_CORRIDOR = "corridor";
 static char * TYPE_ROCK = "rock";
+static char * TYPE_INVALID = "invalid";
 
 typedef struct {
     int tunneling_distance;
     int non_tunneling_distance;
     int hardness;
     char * type;
+    uint8_t x;
+    uint8_t y;
 } Board_Cell;
 
 struct Room {
@@ -54,6 +58,70 @@ int SHOW_HELP = 0;
 int NUMBER_OF_ROOMS = MIN_NUMBER_OF_ROOMS;
 int MAX_ROOM_WIDTH = DEFAULT_MAX_ROOM_WIDTH;
 int MAX_ROOM_HEIGHT = DEFAULT_MAX_ROOM_HEIGHT;
+
+// Start priority queue
+// This queue was taken from https://rosettacode.org/wiki/Priority_queue#C
+typedef struct {
+    int priority;
+    Board_Cell cell;
+} node_t;
+
+typedef struct {
+    node_t *nodes;
+    int len;
+    int size;
+} heap_t;
+
+void push (heap_t *h, int priority, Board_Cell cell) {
+    if (h->len + 1 >= h->size) {
+        h->size = h->size ? h->size * 2 : 4;
+        h->nodes = (node_t *)realloc(h->nodes, h->size * sizeof (node_t));
+    }
+    int i = h->len + 1;
+    int j = i - 1;
+    while (i > 1 && h->nodes[j].priority > priority) {
+        h->nodes[i] = h->nodes[j];
+        i = j;
+        j--;
+    }
+    h->nodes[i].priority = priority;
+    h->nodes[i].cell = cell;
+    h->len++;
+}
+
+Board_Cell pop (heap_t *h) {
+    int i, j, k;
+    if (!h->len) {
+        Board_Cell cell;
+        cell.type = TYPE_INVALID;
+        return cell;
+    }
+    printf("priority: %d\n", h->nodes[1].priority);
+    Board_Cell cell = h->nodes[1].cell;
+    h->nodes[1] = h->nodes[h->len];
+    h->len--;
+    i = 1;
+    while (1) {
+        k = i;
+        j = 2 * i;
+        if (j <= h->len && h->nodes[j].priority < h->nodes[k].priority) {
+            k = j;
+        }
+        if (j + 1 <= h->len && h->nodes[j + 1].priority < h->nodes[k].priority) {
+            k = j + 1;
+        }
+        if (k == i) {
+            break;
+        }
+        h->nodes[i] = h->nodes[k];
+        i = k;
+    }
+    h->nodes[i] = h->nodes[h->len + 1];
+    return cell;
+}
+// End priority queue
+
+heap_t *non_tunneling_queue;
 
 void print_usage();
 void make_rlg_directory();
@@ -118,10 +186,12 @@ int main(int argc, char *args[]) {
         dig_rooms(NUMBER_OF_ROOMS);
         dig_cooridors();
     }
+    non_tunneling_queue = (heap_t *)calloc(1, sizeof(heap_t));
     place_player();
     set_non_tunneling_distance_to_player();
     set_tunneling_distance_to_player();
 
+    printf("Player x: %d, y: %d\n", player.x, player.y);
 
     print_board();
     print_non_tunneling_board();
@@ -227,12 +297,16 @@ void load_board() {
         fread(&num, 1, 1, fp);
         Board_Cell cell;
         cell.hardness = num;
+        cell.non_tunneling_distance = 0;
+        cell.tunneling_distance = 0;
         if (num == 0) {
             cell.type = TYPE_CORRIDOR;
         }
         else {
             cell.type = TYPE_ROCK;
         }
+        cell.x = x;
+        cell.y = y;
         board[y][x] = cell;
         if (x == WIDTH - 1) {
             x = 0;
@@ -287,8 +361,12 @@ void initialize_board() {
     Board_Cell cell;
     cell.type = TYPE_ROCK;
     cell.hardness = ROCK;
+    cell.tunneling_distance = 0;
+    cell.non_tunneling_distance = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
+            cell.x = x;
+            cell.y = y;
             board[y][x] = cell;
         }
     }
@@ -303,31 +381,171 @@ void initialize_immutable_rock() {
     Board_Cell cell;
     cell.type = TYPE_ROCK;
     cell.hardness = IMMUTABLE_ROCK;
+    cell.tunneling_distance = 0;
+    cell.non_tunneling_distance = 0;
     for (y = 0; y < HEIGHT; y++) {
+        cell.y = y;
+        cell.x = 0;
         board[y][0] = cell;
+        cell.x = max_x;
         board[y][max_x] = cell;
     }
     for (x = 0; x < WIDTH; x++) {
+        cell.y = 0;
+        cell.x = x;
         board[0][x] = cell;
+        cell.y = max_y;
         board[max_y][x] = cell;
     }
 }
 
 void place_player() {
+    /*
     struct Room room = rooms[0];
     int x = random_int(room.start_x, room.end_x, 100);
     int y = random_int(room.start_y, room.end_y, 500);
     player.x = x;
     player.y = y;
+    */
+    player.x = 123;
+    player.y = 50;
 }
 void set_tunneling_distance_to_player() {
     printf("Setting tunneling distance to player\n");
 };
+int get_shortest_distance_from_neighbors(Board_Cell cell) {
+    int min = 1000;
+    int can_go_right = cell.x < WIDTH -1;
+    int can_go_up = cell.y > 0;
+    int can_go_left = cell.x > 0;
+    int can_go_down = cell.y < HEIGHT -1;
+    if (can_go_right) {
+        Board_Cell right = board[cell.y][cell.x + 1];
+        if (right.non_tunneling_distance) {
+            min = (int) fmin(min, right.non_tunneling_distance);
+        }
+        if(right.x == player.x && right.y == player.y) {
+            return 0;
+        }
+        if (can_go_up) {
+            Board_Cell top_right = board[cell.y - 1][cell.x + 1];
+            if (top_right.non_tunneling_distance) {
+                min = (int) fmin(min, top_right.non_tunneling_distance);
+            }
+            if (top_right.x == player.x && right.y == player.y) {
+                return 0;
+            }
+        }
+        if (can_go_down) {
+            Board_Cell bottom_right = board[cell.y + 1][cell.x + 1];
+            if (bottom_right.non_tunneling_distance) {
+                min = (int) fmin(min, bottom_right.non_tunneling_distance);
+            }
+            if (bottom_right.x == player.x && bottom_right.y == player.y) {
+                return 0;
+            }
+        }
+    }
+    if (can_go_left) {
+        Board_Cell left = board[cell.y][cell.x - 1];
+        if (left.non_tunneling_distance) {
+            min = (int) fmin(min, left.non_tunneling_distance);
+        }
+        if (left.x == player.x && left.y == player.y) {
+            return 0;
+        }
+        if (can_go_up) {
+            Board_Cell top_left = board[cell.y - 1][cell.x - 1];
+            if (top_left.non_tunneling_distance) {
+                min = (int) fmin(min, top_left.non_tunneling_distance);
+            }
+            if (top_left.x == player.x && top_left.y == player.y) {
+                return 0;
+            }
+        }
+        if (can_go_down) {
+            Board_Cell bottom_left = board[cell.y + 1][cell.x - 1];
+            if (bottom_left.non_tunneling_distance) {
+                min = (int) fmin(min, bottom_left.non_tunneling_distance);
+            }
+            if (bottom_left.x == player.x && bottom_left.y == player.y) {
+                return 0;
+            }
+        }
+    }
+
+    if (can_go_up) {
+        Board_Cell above = board[cell.y - 1][cell.x];
+        if (above.non_tunneling_distance) {
+            min = (int) fmin(min, above.non_tunneling_distance);
+        }
+        if (above.x == player.x && above.y == player.y) {
+            return 0;
+        }
+    }
+    if (can_go_down) {
+        Board_Cell below = board[cell.y + 1][cell.x];
+        if (below.non_tunneling_distance) {
+            min = (int) fmin(min, below.non_tunneling_distance);
+        }
+        if (below.x == player.x && below.y == player.y) {
+            return 0;
+        }
+    }
+    return min;
+}
 void set_non_tunneling_distance_to_player() {
     printf("Setting non-tunneling distance to player\n");
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            Board_Cell cell = board[y][x];
+            int priority = (int) fmax(abs(y - player.y), abs(x - player.x));
+            if (priority && strcmp(cell.type, TYPE_ROCK) != 0) {
+                if (priority < 5) {
+                    printf("x: %d, y: %d, priority: %d \n", cell.x, cell.y, priority);
+                }
+                push(non_tunneling_queue, priority, cell);
+            }
+        }
+    }
+    for (int i = 1; i < non_tunneling_queue->len; i++) {
+
+        Board_Cell cell = non_tunneling_queue->nodes[i].cell;
+        int dist = get_shortest_distance_from_neighbors(cell);
+        if (dist == 1000) {
+            push(non_tunneling_queue, 1000, cell);
+            continue;
+        }
+        cell.non_tunneling_distance = dist + 1;
+        board[cell.y][cell.x] = cell;
+    }
+    // Go back through and make sure everything got assigned the shortest path
+    for (int i = 1; i < non_tunneling_queue->len; i++) {
+        Board_Cell cell = non_tunneling_queue->nodes[i].cell;
+        int dist = get_shortest_distance_from_neighbors(cell);
+        cell.non_tunneling_distance = dist + 1;
+        board[cell.y][cell.x] = cell;
+    }
 }
 void print_non_tunneling_board() {
     printf("Printing non-tunneling board\n");
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+           Board_Cell cell = board[y][x];
+           if(cell.x == player.x && cell.y == player.y) {
+               printf("@");
+           }
+           else {
+               if (cell.non_tunneling_distance) {
+                   printf("%d", cell.non_tunneling_distance % 10);
+               }
+               else {
+                    printf(" ");
+               }
+           }
+        }
+        printf("\n");
+    }
 }
 void print_tunneling_board() {
     printf("Printing tunneling board\n");
@@ -435,10 +653,14 @@ void add_rooms_to_board() {
     Board_Cell cell;
     cell.type = TYPE_ROOM;
     cell.hardness = ROOM;
+    cell.non_tunneling_distance = 0;
+    cell.tunneling_distance = 0;
     for(int i = 0; i < NUMBER_OF_ROOMS; i++) {
         struct Room room = rooms[i];
         for (int y = room.start_y; y <= room.end_y; y++) {
             for(int x = room.start_x; x <= room.end_x; x++) {
+                cell.x = x;
+                cell.y = y;
                 board[y][x] = cell;
             }
         }
@@ -490,6 +712,8 @@ void connect_rooms_at_indexes(int index1, int index2) {
         Board_Cell corridor_cell;
         corridor_cell.type = TYPE_CORRIDOR;
         corridor_cell.hardness = CORRIDOR;
+        corridor_cell.x = cur_x;
+        corridor_cell.y = cur_y;
         board[cur_y][cur_x] = corridor_cell;
         if ((cur_y != end_y && move_y) || (cur_x == end_x)) {
             cur_y += y_incrementer;
