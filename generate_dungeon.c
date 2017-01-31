@@ -25,6 +25,8 @@ static char * TYPE_CORRIDOR = "corridor";
 static char * TYPE_ROCK = "rock";
 
 typedef struct {
+    int tunneling_distance;
+    int non_tunneling_distance;
     int hardness;
     char * type;
 } Board_Cell;
@@ -36,8 +38,14 @@ struct Room {
     uint8_t end_y;
 };
 
+struct Player {
+    uint8_t x;
+    uint8_t y;
+};
+
 Board_Cell board[HEIGHT][WIDTH];
 struct Room * rooms;
+struct Player player;
 char * RLG_DIRECTORY;
 
 int DO_SAVE = 0;
@@ -55,6 +63,11 @@ void initialize_board();
 void initialize_immutable_rock();
 void load_board();
 void save_board();
+void place_player();
+void set_tunneling_distance_to_player();
+void set_non_tunneling_distance_to_player();
+void print_non_tunneling_board();
+void print_tunneling_board();
 void print_board();
 void print_cell();
 void dig_rooms(int number_of_rooms_to_dig);
@@ -105,8 +118,14 @@ int main(int argc, char *args[]) {
         dig_rooms(NUMBER_OF_ROOMS);
         dig_cooridors();
     }
+    place_player();
+    set_non_tunneling_distance_to_player();
+    set_tunneling_distance_to_player();
+
 
     print_board();
+    print_non_tunneling_board();
+    print_tunneling_board();
 
     if (DO_SAVE) {
         save_board();
@@ -294,10 +313,36 @@ void initialize_immutable_rock() {
     }
 }
 
+void place_player() {
+    struct Room room = rooms[0];
+    int x = random_int(room.start_x, room.end_x, 100);
+    int y = random_int(room.start_y, room.end_y, 500);
+    player.x = x;
+    player.y = y;
+}
+void set_tunneling_distance_to_player() {
+    printf("Setting tunneling distance to player\n");
+};
+void set_non_tunneling_distance_to_player() {
+    printf("Setting non-tunneling distance to player\n");
+}
+void print_non_tunneling_board() {
+    printf("Printing non-tunneling board\n");
+}
+void print_tunneling_board() {
+    printf("Printing tunneling board\n");
+}
+
+
 void print_board() {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            print_cell(board[y][x]);
+            if (y == player.y && x == player.x) {
+                printf("@");
+            }
+            else {
+                print_cell(board[y][x]);
+            }
         }
         printf("\n");
     }
