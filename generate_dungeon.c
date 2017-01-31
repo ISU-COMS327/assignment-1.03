@@ -122,6 +122,7 @@ Board_Cell pop (heap_t *h) {
 // End priority queue
 
 heap_t *non_tunneling_queue;
+heap_t *tunneling_queue;
 
 void print_usage();
 void make_rlg_directory();
@@ -187,6 +188,7 @@ int main(int argc, char *args[]) {
         dig_cooridors();
     }
     non_tunneling_queue = (heap_t *)calloc(1, sizeof(heap_t));
+    tunneling_queue = (heap_t *)calloc(1, sizeof(heap_t));
     place_player();
     set_non_tunneling_distance_to_player();
     set_tunneling_distance_to_player();
@@ -407,13 +409,150 @@ void place_player() {
     player.x = x;
     player.y = y;
     */
-    player.x = 123;
-    player.y = 50;
+    player.x = 96;
+    player.y = 22;
 }
+
+int get_cell_weight(Board_Cell cell) {
+    if (cell.hardness == 0) {
+        return 0;
+    }
+    if (cell.hardness <= 84) {
+        return 0;
+    }
+    if (cell.hardness <= 170) {
+        return 1;
+    }
+    if (cell.hardness <= 254) {
+        return 2;
+    }
+    return 1000;
+}
+
+int get_shortest_tunneling_distance_from_neighbors(Board_Cell cell) {
+    int min = 1000;
+    int can_go_right = cell.x < WIDTH -1;
+    int can_go_up = cell.y > 0;
+    int can_go_left = cell.x > 0;
+    int can_go_down = cell.y < HEIGHT -1;
+    if (can_go_right) {
+        Board_Cell right = board[cell.y][cell.x + 1];
+        if (right.tunneling_distance) {
+            min = (int) fmin(min, right.tunneling_distance + get_cell_weight(right));
+        }
+        if(right.x == player.x && right.y == player.y) {
+            return 0;
+        }
+        if (can_go_up) {
+            Board_Cell top_right = board[cell.y - 1][cell.x + 1];
+            if (top_right.tunneling_distance) {
+                min = (int) fmin(min, top_right.tunneling_distance + get_cell_weight(top_right));
+            }
+            if (top_right.x == player.x && right.y == player.y) {
+                return 0;
+            }
+        }
+        if (can_go_down) {
+            Board_Cell bottom_right = board[cell.y + 1][cell.x + 1];
+            if (bottom_right.tunneling_distance) {
+                min = (int) fmin(min, bottom_right.tunneling_distance + get_cell_weight(bottom_right));
+            }
+            if (bottom_right.x == player.x && bottom_right.y == player.y) {
+                return 0;
+            }
+        }
+    }
+    if (can_go_left) {
+        Board_Cell left = board[cell.y][cell.x - 1];
+        if (left.tunneling_distance) {
+            min = (int) fmin(min, left.tunneling_distance + get_cell_weight(left));
+        }
+        if (left.x == player.x && left.y == player.y) {
+            return 0;
+        }
+        if (can_go_up) {
+            Board_Cell top_left = board[cell.y - 1][cell.x - 1];
+            if (top_left.tunneling_distance) {
+                min = (int) fmin(min, top_left.tunneling_distance + get_cell_weight(top_left));
+            }
+            if (top_left.x == player.x && top_left.y == player.y) {
+                return 0;
+            }
+        }
+        if (can_go_down) {
+            Board_Cell bottom_left = board[cell.y + 1][cell.x - 1];
+            if (bottom_left.tunneling_distance) {
+                min = (int) fmin(min, bottom_left.tunneling_distance + get_cell_weight(bottom_left));
+            }
+            if (bottom_left.x == player.x && bottom_left.y == player.y) {
+                return 0;
+            }
+        }
+    }
+
+    if (can_go_up) {
+        Board_Cell above = board[cell.y - 1][cell.x];
+        if (above.tunneling_distance) {
+            min = (int) fmin(min, above.tunneling_distance + get_cell_weight(above));
+        }
+        if (above.x == player.x && above.y == player.y) {
+            return 0;
+        }
+    }
+    if (can_go_down) {
+        Board_Cell below = board[cell.y + 1][cell.x];
+        if (below.tunneling_distance) {
+            min = (int) fmin(min, below.tunneling_distance + get_cell_weight(below));
+        }
+        if (below.x == player.x && below.y == player.y) {
+            return 0;
+        }
+    }
+    return min;
+
+}
+
 void set_tunneling_distance_to_player() {
     printf("Setting tunneling distance to player\n");
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            Board_Cell cell = board[y][x];
+            int priority = (int) fmax(abs(y - player.y), abs(x - player.x));
+            if (priority && cell.hardness != IMMUTABLE_ROCK) {
+                push(tunneling_queue, priority + get_cell_weight(cell), cell);
+            }
+        }
+    }
+    for (int i = 1; i < tunneling_queue->len; i++) {
+        Board_Cell cell = tunneling_queue->nodes[i].cell;
+        int dist = get_shortest_tunneling_distance_from_neighbors(cell);
+        if (dist == 1000) {
+            push(tunneling_queue, 1000, cell);
+            continue;
+        }
+        cell.tunneling_distance = dist + 1;
+        board[cell.y][cell.x] = cell;
+    }
+    // Go back through and make sure everything got assigned the shortest path
+    for (int i = 1; i < tunneling_queue->len; i++) {
+        Board_Cell cell = tunneling_queue->nodes[i].cell;
+        int dist = get_shortest_tunneling_distance_from_neighbors(cell);
+        cell.tunneling_distance = dist + 1;
+        board[cell.y][cell.x] = cell;
+    }
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            Board_Cell cell = board[y][x];
+            int dist = get_shortest_tunneling_distance_from_neighbors(cell);
+            cell.tunneling_distance = dist + 1;
+            board[cell.y][cell.x] = cell;
+        }
+    }
+
+
 };
-int get_shortest_distance_from_neighbors(Board_Cell cell) {
+
+int get_shortest_non_tunneling_distance_from_neighbors(Board_Cell cell) {
     int min = 1000;
     int can_go_right = cell.x < WIDTH -1;
     int can_go_up = cell.y > 0;
@@ -511,7 +650,7 @@ void set_non_tunneling_distance_to_player() {
     for (int i = 1; i < non_tunneling_queue->len; i++) {
 
         Board_Cell cell = non_tunneling_queue->nodes[i].cell;
-        int dist = get_shortest_distance_from_neighbors(cell);
+        int dist = get_shortest_non_tunneling_distance_from_neighbors(cell);
         if (dist == 1000) {
             push(non_tunneling_queue, 1000, cell);
             continue;
@@ -522,7 +661,7 @@ void set_non_tunneling_distance_to_player() {
     // Go back through and make sure everything got assigned the shortest path
     for (int i = 1; i < non_tunneling_queue->len; i++) {
         Board_Cell cell = non_tunneling_queue->nodes[i].cell;
-        int dist = get_shortest_distance_from_neighbors(cell);
+        int dist = get_shortest_non_tunneling_distance_from_neighbors(cell);
         cell.non_tunneling_distance = dist + 1;
         board[cell.y][cell.x] = cell;
     }
@@ -549,6 +688,24 @@ void print_non_tunneling_board() {
 }
 void print_tunneling_board() {
     printf("Printing tunneling board\n");
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+           Board_Cell cell = board[y][x];
+           if(cell.x == player.x && cell.y == player.y) {
+               printf("@");
+           }
+           else {
+               if (cell.hardness == IMMUTABLE_ROCK) {
+                   printf(" ");
+               }
+               else {
+                   printf("%d", cell.tunneling_distance % 10);
+               }
+           }
+        }
+        printf("\n");
+    }
+
 }
 
 
@@ -714,6 +871,8 @@ void connect_rooms_at_indexes(int index1, int index2) {
         corridor_cell.hardness = CORRIDOR;
         corridor_cell.x = cur_x;
         corridor_cell.y = cur_y;
+        corridor_cell.non_tunneling_distance = 0;
+        corridor_cell.tunneling_distance = 0;
         board[cur_y][cur_x] = corridor_cell;
         if ((cur_y != end_y && move_y) || (cur_x == end_x)) {
             cur_y += y_incrementer;
