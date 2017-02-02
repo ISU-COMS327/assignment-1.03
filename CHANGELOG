@@ -1,0 +1,135 @@
+commit a94c816
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Mon Jan 30 19:32:42 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Mon Jan 30 19:32:42 2017 -0600
+
+    Initialized repository
+
+commit 72d587b
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Mon Jan 30 19:53:58 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Mon Jan 30 19:53:58 2017 -0600
+
+    Placing player at random location
+
+commit ca9abcf
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Mon Jan 30 19:54:07 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Mon Jan 30 19:54:07 2017 -0600
+
+    Forgot to call make clean before committing
+
+commit 24112d8
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Tue Jan 31 13:43:19 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Tue Jan 31 13:43:19 2017 -0600
+
+    Supports non-tunneling board
+
+commit 6a28c1a
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Tue Jan 31 15:00:38 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Tue Jan 31 15:00:38 2017 -0600
+
+    Tunneling solution is half-baked
+
+commit f62f55e
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 09:29:20 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 09:29:20 2017 -0600
+
+    Re-factored non-tunneling distance function
+
+commit 4fb0f7c
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 09:29:30 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 09:29:30 2017 -0600
+
+    Forgot to make clean before committing
+
+commit 4edd91d
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 10:46:16 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 10:46:16 2017 -0600
+
+    Started re-factoring tunneling algorithm
+
+commit 43e78c9
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 10:46:26 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 10:46:26 2017 -0600
+
+    Forgot to make clean before committing
+
+commit c8d61c0
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 12:52:29 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 12:52:29 2017 -0600
+
+    Found and fixed a bug in non-tunneling algorithm
+
+commit c248f1f
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 12:52:37 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 12:52:37 2017 -0600
+
+    forgot to make clean
+
+commit 4d0f1c7
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 13:27:52 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 13:27:52 2017 -0600
+
+    Completed tunneling algorithm
+
+commit 6d880ba
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 13:30:51 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 13:30:51 2017 -0600
+
+    Respect edge weight in non-tunneling algorithm
+
+commit a5686a4
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 13:33:09 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 13:33:09 2017 -0600
+
+    Unnecessary globals
+
+commit 40a1dbf
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 13:33:52 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 13:33:52 2017 -0600
+
+    Use built-in INFINITY
+
+commit 9531a62 (origin/master)
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 16:28:18 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 16:28:18 2017 -0600
+
+    split queue functionality out into its own file
+
+commit 8b50437 (HEAD -> master)
+Author:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+AuthorDate: Thu Feb 2 17:09:26 2017 -0600
+Commit:     Joseph McGovern <joseph.mcgovern@webfilings.com>
+CommitDate: Thu Feb 2 17:09:26 2017 -0600
+
+    Update README and change log
