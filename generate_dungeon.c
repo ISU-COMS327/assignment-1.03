@@ -8,7 +8,6 @@
 #include <sys/stat.h>
 #include <math.h>
 
-#define MY_INFINITY 500
 #define HEIGHT 105
 #define WIDTH 160
 #define IMMUTABLE_ROCK 255
@@ -523,7 +522,7 @@ void set_tunneling_distance_to_player() {
                 board[y][x].tunneling_distance = 0;
             }
             else {
-                board[y][x].tunneling_distance = MY_INFINITY;
+                board[y][x].tunneling_distance = INFINITY;
             }
             if (board[y][x].hardness < IMMUTABLE_ROCK) {
                 insert_with_priority(tunneling_queue, coord, board[y][x].tunneling_distance);
@@ -621,7 +620,7 @@ void set_non_tunneling_distance_to_player() {
                 board[y][x].non_tunneling_distance = 0;
             }
             else {
-                board[y][x].non_tunneling_distance = MY_INFINITY;
+                board[y][x].non_tunneling_distance = INFINITY;
             }
             if (board[y][x].hardness < 1) {
                 insert_with_priority(non_tunneling_queue, coord, board[y][x].non_tunneling_distance);
