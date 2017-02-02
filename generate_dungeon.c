@@ -117,6 +117,36 @@ Node extract_min(Queue * q) {
     return min;
 }
 
+int nodes_are_equal(Node node1, Node node2) {
+    return node1.coord.x == node2.coord.x && node1.coord.y == node2.coord.y;
+}
+
+void decrease_priority(Queue *q, struct Coordinate coord, int priority) {
+    Node node;
+    node.coord = coord;
+    node.priority = priority;
+    int old_index;
+    for (old_index = 0; old_index < q->length; old_index++) {
+       Node existing_node = q->nodes[old_index];
+       if (nodes_are_equal(node, existing_node)) {
+           break;
+       }
+    }
+    int new_index;
+    for (new_index = 0; new_index < q->length; new_index++) {
+        Node existing_node = q->nodes[new_index];
+        if (priority < existing_node.priority) {
+            for (int j = old_index - 1; j >= new_index; j--) {
+                Node node_to_shift = q->nodes[j];
+                q->nodes[j+1] = node_to_shift;
+            }
+            q->nodes[new_index] = node;
+            break;
+        }
+    }
+
+}
+
 void print_queue(Queue *q) {
     printf("========\n");
     printf("queue length: %d\n", q->length);
@@ -427,144 +457,110 @@ int get_cell_weight(Board_Cell cell) {
     if (cell.hardness <= 254) {
         return 2;
     }
+    printf("Returning 1000, x: %d, y: %d\n", cell.x, cell.y);
     return 1000;
 }
 
-int get_shortest_tunneling_distance_from_neighbors(Board_Cell cell) {
-    /*
-    int min = 1000;
-    int can_go_right = cell.x < WIDTH -1;
-    int can_go_up = cell.y > 0;
-    int can_go_left = cell.x > 0;
-    int can_go_down = cell.y < HEIGHT -1;
+int should_add_tunneling_neighbor(Board_Cell cell) {
+    return cell.tunneling_distance == MY_INFINITY && cell.hardness < IMMUTABLE_ROCK;
+}
+
+void add_tunneling_neighbor(Neighbors * neighbors, Board_Cell cell) {
+    if (!should_add_tunneling_neighbor(cell)) {
+        return;
+    }
+    neighbors->cells[neighbors->length] = cell;
+    neighbors->length ++;
+}
+
+
+Neighbors *get_tunneling_neighbors(struct Coordinate coord) {
+    int can_go_right = coord.x < WIDTH -1;
+    int can_go_up = coord.y > 0;
+    int can_go_left = coord.x > 0;
+    int can_go_down = coord.y < HEIGHT -1;
+    Neighbors *neighbors = malloc(sizeof(Neighbors));
+    neighbors->cells = malloc(sizeof(Board_Cell) * 8);
+
     if (can_go_right) {
-        Board_Cell right = board[cell.y][cell.x + 1];
-        if (right.tunneling_distance) {
-            min = (int) fmin(min, right.tunneling_distance + get_cell_weight(right));
-        }
-        if(right.x == player.x && right.y == player.y) {
-            return 0;
-        }
+        Board_Cell right = board[coord.y][coord.x + 1];
+        add_tunneling_neighbor(neighbors, right);
         if (can_go_up) {
-            Board_Cell top_right = board[cell.y - 1][cell.x + 1];
-            if (top_right.tunneling_distance) {
-                min = (int) fmin(min, top_right.tunneling_distance + get_cell_weight(top_right));
-            }
-            if (top_right.x == player.x && right.y == player.y) {
-                return 0;
-            }
+            Board_Cell top_right = board[coord.y - 1][coord.x + 1];
+            add_tunneling_neighbor(neighbors, top_right);
         }
         if (can_go_down) {
-            Board_Cell bottom_right = board[cell.y + 1][cell.x + 1];
-            if (bottom_right.tunneling_distance) {
-                min = (int) fmin(min, bottom_right.tunneling_distance + get_cell_weight(bottom_right));
-            }
-            if (bottom_right.x == player.x && bottom_right.y == player.y) {
-                return 0;
-            }
+            Board_Cell bottom_right = board[coord.y + 1][coord.x + 1];
+            add_tunneling_neighbor(neighbors, bottom_right);
         }
     }
     if (can_go_left) {
-        Board_Cell left = board[cell.y][cell.x - 1];
-        if (left.tunneling_distance) {
-            min = (int) fmin(min, left.tunneling_distance + get_cell_weight(left));
-        }
-        if (left.x == player.x && left.y == player.y) {
-            return 0;
-        }
+        Board_Cell left = board[coord.y][coord.x - 1];
+        add_tunneling_neighbor(neighbors, left);
         if (can_go_up) {
-            Board_Cell top_left = board[cell.y - 1][cell.x - 1];
-            if (top_left.tunneling_distance) {
-                min = (int) fmin(min, top_left.tunneling_distance + get_cell_weight(top_left));
-            }
-            if (top_left.x == player.x && top_left.y == player.y) {
-                return 0;
-            }
+            Board_Cell top_left = board[coord.y - 1][coord.x - 1];
+            add_tunneling_neighbor(neighbors, top_left);
         }
         if (can_go_down) {
-            Board_Cell bottom_left = board[cell.y + 1][cell.x - 1];
-            if (bottom_left.tunneling_distance) {
-                min = (int) fmin(min, bottom_left.tunneling_distance + get_cell_weight(bottom_left));
-            }
-            if (bottom_left.x == player.x && bottom_left.y == player.y) {
-                return 0;
-            }
+            Board_Cell bottom_left = board[coord.y + 1][coord.x - 1];
+            add_tunneling_neighbor(neighbors, bottom_left);
         }
     }
 
     if (can_go_up) {
-        Board_Cell above = board[cell.y - 1][cell.x];
-        if (above.tunneling_distance) {
-            min = (int) fmin(min, above.tunneling_distance + get_cell_weight(above));
-        }
-        if (above.x == player.x && above.y == player.y) {
-            return 0;
-        }
+        Board_Cell above = board[coord.y - 1][coord.x];
+        add_tunneling_neighbor(neighbors, above);
     }
     if (can_go_down) {
-        Board_Cell below = board[cell.y + 1][cell.x];
-        if (below.tunneling_distance) {
-            min = (int) fmin(min, below.tunneling_distance + get_cell_weight(below));
-        }
-        if (below.x == player.x && below.y == player.y) {
-            return 0;
-        }
+        Board_Cell below = board[coord.y + 1][coord.x];
+        add_tunneling_neighbor(neighbors, below);
     }
-    return min;
-    */
-    return 0;
+
+    return neighbors;
 }
 
+
 void set_tunneling_distance_to_player() {
-    /*
     printf("Setting tunneling distance to player\n");
+    board[player.y][player.x].tunneling_distance = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            Board_Cell cell = board[y][x];
-            int priority = (int) fmax(abs(y - player.y), abs(x - player.x));
-            if (priority && cell.hardness != IMMUTABLE_ROCK) {
-                push(tunneling_queue, priority + get_cell_weight(cell), cell);
+            struct Coordinate coord;
+            coord.x = x;
+            coord.y = y;
+            if (y != player.y || x != player.x) {
+                board[y][x].tunneling_distance = MY_INFINITY;
+            }
+            if (board[y][x].hardness < IMMUTABLE_ROCK) {
+                insert_with_priority(tunneling_queue, coord, board[y][x].tunneling_distance);
             }
         }
     }
-    for (int i = 1; i < tunneling_queue->len; i++) {
-        Board_Cell cell = tunneling_queue->nodes[i].cell;
-        int dist = get_shortest_tunneling_distance_from_neighbors(cell);
-        if (dist == 1000) {
-            push(tunneling_queue, 1000, cell);
-            continue;
-        }
-        cell.tunneling_distance = dist + 1;
-        board[cell.y][cell.x] = cell;
-    }
-    // Go back through and make sure everything got assigned the shortest path
-    for (int i = 1; i < tunneling_queue->len; i++) {
-        Board_Cell cell = tunneling_queue->nodes[i].cell;
-        int dist = get_shortest_tunneling_distance_from_neighbors(cell);
-        cell.tunneling_distance = dist + 1;
-        board[cell.y][cell.x] = cell;
-    }
-    for (int y = 0; y < HEIGHT; y++) {
-        for (int x = 0; x < WIDTH; x++) {
-            Board_Cell cell = board[y][x];
-            int dist = get_shortest_tunneling_distance_from_neighbors(cell);
-            cell.tunneling_distance = dist + 1;
-            board[cell.y][cell.x] = cell;
+    while(tunneling_queue->length) {
+        Node min = extract_min(tunneling_queue);
+        Board_Cell min_cell = board[min.coord.y][min.coord.x];
+        Neighbors * neighbors = get_tunneling_neighbors(min.coord);
+        int min_dist = min_cell.tunneling_distance + get_cell_weight(min_cell);
+        for (int i = 0; i < neighbors->length; i++) {
+            Board_Cell neighbor_cell = neighbors->cells[i];
+            Board_Cell cell = board[neighbor_cell.y][neighbor_cell.x];
+            if (min_dist < cell.tunneling_distance) {
+                struct Coordinate coord;
+                coord.x = cell.x;
+                coord.y = cell.y;
+                board[cell.y][cell.x].tunneling_distance = min_dist + 1;
+                decrease_priority(tunneling_queue, coord, min_dist + 1);
+            }
         }
     }
-
-    */
-
 };
 
 int should_add_non_tunneling_neighbor(Board_Cell cell) {
     return cell.non_tunneling_distance == MY_INFINITY && strcmp(cell.type, TYPE_ROCK) != 0;
 }
 
-void add_neighbor(Neighbors * neighbors, Board_Cell cell) {
-    printf("Adding neighbor\n");
+void add_non_tunneling_neighbor(Neighbors * neighbors, Board_Cell cell) {
     if (!should_add_non_tunneling_neighbor(cell)) {
-        printf("returning early\n");
         return;
     }
     neighbors->cells[neighbors->length] = cell;
@@ -582,36 +578,36 @@ Neighbors *get_non_tunneling_neighbors(struct Coordinate coord) {
 
     if (can_go_right) {
         Board_Cell right = board[coord.y][coord.x + 1];
-        add_neighbor(neighbors, right);
+        add_non_tunneling_neighbor(neighbors, right);
         if (can_go_up) {
             Board_Cell top_right = board[coord.y - 1][coord.x + 1];
-            add_neighbor(neighbors, top_right);
+            add_non_tunneling_neighbor(neighbors, top_right);
         }
         if (can_go_down) {
             Board_Cell bottom_right = board[coord.y + 1][coord.x + 1];
-            add_neighbor(neighbors, bottom_right);
+            add_non_tunneling_neighbor(neighbors, bottom_right);
         }
     }
     if (can_go_left) {
         Board_Cell left = board[coord.y][coord.x - 1];
-        add_neighbor(neighbors, left);
+        add_non_tunneling_neighbor(neighbors, left);
         if (can_go_up) {
             Board_Cell top_left = board[coord.y - 1][coord.x - 1];
-            add_neighbor(neighbors, top_left);
+            add_non_tunneling_neighbor(neighbors, top_left);
         }
         if (can_go_down) {
             Board_Cell bottom_left = board[coord.y + 1][coord.x - 1];
-            add_neighbor(neighbors, bottom_left);
+            add_non_tunneling_neighbor(neighbors, bottom_left);
         }
     }
 
     if (can_go_up) {
         Board_Cell above = board[coord.y - 1][coord.x];
-        add_neighbor(neighbors, above);
+        add_non_tunneling_neighbor(neighbors, above);
     }
     if (can_go_down) {
         Board_Cell below = board[coord.y + 1][coord.x];
-        add_neighbor(neighbors, below);
+        add_non_tunneling_neighbor(neighbors, below);
     }
 
     return neighbors;
