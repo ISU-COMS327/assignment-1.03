@@ -127,13 +127,17 @@ void decrease_priority(Queue *q, struct Coordinate coord, int priority) {
     node.priority = priority;
     int old_index;
     int prev_pri = 0;
+    int found = 0;
     for (old_index = 0; old_index < q->length; old_index++) {
        Node existing_node = q->nodes[old_index];
        if (coord.x == existing_node.coord.x && coord.y == existing_node.coord.y){
-           printf("Found!\n");
            prev_pri = existing_node.priority;
+           found = 1;
            break;
        }
+    }
+    if (!found) {
+        return;
     }
     int new_index;
     for (new_index = 0; new_index < q->length; new_index++) {
@@ -144,7 +148,6 @@ void decrease_priority(Queue *q, struct Coordinate coord, int priority) {
                 q->nodes[j+1] = node_to_shift;
             }
             q->nodes[new_index] = node;
-            printf("Successfully decreased priority from %d to %d\n", prev_pri, priority);
             break;
         }
     }
@@ -232,7 +235,7 @@ int main(int argc, char *args[]) {
     tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     place_player();
     set_non_tunneling_distance_to_player();
-    //set_tunneling_distance_to_player();
+    set_tunneling_distance_to_player();
     printf("Player x: %d, y: %d\n", player.x, player.y);
 
     print_board();
@@ -449,23 +452,23 @@ void place_player() {
 
 int get_cell_weight(Board_Cell cell) {
     if (cell.hardness == 0) {
-        return 0;
-    }
-    if (cell.hardness <= 84) {
-        return 0;
-    }
-    if (cell.hardness <= 170) {
         return 1;
     }
-    if (cell.hardness <= 254) {
+    if (cell.hardness <= 84) {
+        return 1;
+    }
+    if (cell.hardness <= 170) {
         return 2;
+    }
+    if (cell.hardness <= 254) {
+        return 3;
     }
     printf("Returning 1000, x: %d, y: %d\n", cell.x, cell.y);
     return 1000;
 }
 
 int should_add_tunneling_neighbor(Board_Cell cell) {
-    return cell.tunneling_distance == MY_INFINITY && cell.hardness < IMMUTABLE_ROCK;
+    return cell.hardness < IMMUTABLE_ROCK;
 }
 
 void add_tunneling_neighbor(Neighbors * neighbors, Board_Cell cell) {
@@ -531,7 +534,10 @@ void set_tunneling_distance_to_player() {
             struct Coordinate coord;
             coord.x = x;
             coord.y = y;
-            if (y != player.y || x != player.x) {
+            if (y == player.y && x == player.x) {
+                board[y][x].tunneling_distance = 0;
+            }
+            else {
                 board[y][x].tunneling_distance = MY_INFINITY;
             }
             if (board[y][x].hardness < IMMUTABLE_ROCK) {
@@ -539,6 +545,7 @@ void set_tunneling_distance_to_player() {
             }
         }
     }
+    int count = 0;
     while(tunneling_queue->length) {
         Node min = extract_min(tunneling_queue);
         Board_Cell min_cell = board[min.coord.y][min.coord.x];
@@ -551,10 +558,11 @@ void set_tunneling_distance_to_player() {
                 struct Coordinate coord;
                 coord.x = cell.x;
                 coord.y = cell.y;
-                board[cell.y][cell.x].tunneling_distance = min_dist + 1;
-                decrease_priority(tunneling_queue, coord, min_dist + 1);
+                board[cell.y][cell.x].tunneling_distance = min_dist;
+                decrease_priority(tunneling_queue, coord, board[cell.y][cell.x].tunneling_distance);
             }
         }
+        count ++;
     }
 };
 
