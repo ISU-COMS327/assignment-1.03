@@ -559,7 +559,7 @@ void set_tunneling_distance_to_player() {
                 coord.x = cell.x;
                 coord.y = cell.y;
                 board[cell.y][cell.x].tunneling_distance = min_dist;
-                decrease_priority(tunneling_queue, coord, board[cell.y][cell.x].tunneling_distance);
+                decrease_priority(tunneling_queue, coord, min_dist);
             }
         }
         count ++;
@@ -567,7 +567,7 @@ void set_tunneling_distance_to_player() {
 };
 
 int should_add_non_tunneling_neighbor(Board_Cell cell) {
-    return cell.hardness < 1 && cell.non_tunneling_distance ==  MY_INFINITY;
+    return cell.hardness < 1;
 }
 
 void add_non_tunneling_neighbor(Neighbors * neighbors, Board_Cell cell) {
@@ -646,17 +646,17 @@ void set_non_tunneling_distance_to_player() {
     while(non_tunneling_queue->length) {
         Node min = extract_min(non_tunneling_queue);
         Board_Cell min_cell = board[min.coord.y][min.coord.x];
-        printf("got min: %d, x: %d, y: %d\n", min.priority, min_cell.x, min_cell.y);
         Neighbors * neighbors = get_non_tunneling_neighbors(min.coord);
+        int min_dist = min_cell.non_tunneling_distance + 1;
         for (int i = 0; i < neighbors->length; i++) {
             Board_Cell neighbor_cell = neighbors->cells[i];
             Board_Cell cell = board[neighbor_cell.y][neighbor_cell.x];
-            if (min_cell.non_tunneling_distance < cell.non_tunneling_distance) {
+            if (min_dist < cell.non_tunneling_distance) {
                 struct Coordinate coord;
                 coord.x = cell.x;
                 coord.y = cell.y;
-                board[cell.y][cell.x].non_tunneling_distance = min_cell.non_tunneling_distance + 1;
-                decrease_priority(non_tunneling_queue, coord, board[cell.y][cell.x].non_tunneling_distance);
+                board[cell.y][cell.x].non_tunneling_distance = min_dist;
+                decrease_priority(non_tunneling_queue, coord, min_dist);
             }
         }
     }
