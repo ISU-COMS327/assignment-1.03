@@ -13,7 +13,7 @@
 #define WIDTH 160
 #define IMMUTABLE_ROCK 255
 #define ROCK 200
-#define ROOM -1
+#define ROOM 0
 #define CORRIDOR 0
 #define MIN_NUMBER_OF_ROOMS 10
 #define MAX_NUMBER_OF_ROOMS 50
@@ -82,10 +82,14 @@ void dig_cooridors();
 void connect_rooms_at_indexes(int index1, int index2);
 
 int main(int argc, char *args[]) {
+    int player_x = -1;
+    int player_y = -1;
     struct option longopts[] = {
         {"save", no_argument, &DO_SAVE, 1},
         {"load", no_argument, &DO_LOAD, 1},
         {"rooms", required_argument, 0, 'r'},
+        {"player_x", required_argument, 0, 'x'},
+        {"player_y", required_argument, 0, 'y'},
         {"help", no_argument, &SHOW_HELP, 'h'},
         {0, 0, 0, 0}
     };
@@ -94,6 +98,12 @@ int main(int argc, char *args[]) {
         switch(c) {
             case 'r':
                 NUMBER_OF_ROOMS = atoi(optarg);
+                break;
+            case 'x':
+                player_x = atoi(optarg);
+                break;
+            case 'y':
+                player_y = atoi(optarg);
                 break;
             case 'h':
                 SHOW_HELP = 1;
@@ -107,6 +117,19 @@ int main(int argc, char *args[]) {
         print_usage();
         exit(0);
     }
+    if ((player_x != -1 || player_y != -1) && ((player_x <= 0 || player_x > WIDTH - 1) || (player_y <= 0 || player_y > HEIGHT - 1))) {
+        printf("Invalid player coordinates. Note: both player_x and player_y must be provided as inputs\n");
+        print_usage();
+        exit(0);
+    }
+    if (player_y == -1) {
+        player_y = 0;
+    }
+    if (player_x == -1) {
+        player_x = 0;
+    }
+    player.x = player_x;
+    player.y = player_y;
     printf("Received Parameters: Save: %d, Load: %d, #Rooms: %d\n\n", DO_SAVE, DO_LOAD, NUMBER_OF_ROOMS);
     update_number_of_rooms();
     initialize_board();
@@ -125,7 +148,7 @@ int main(int argc, char *args[]) {
     place_player();
     set_non_tunneling_distance_to_player();
     set_tunneling_distance_to_player();
-    printf("Player x: %d, y: %d\n", player.x, player.y);
+    printf("Player location: (%d, %d) (x, y)\n", player.x, player.y);
 
     print_board();
     print_non_tunneling_board();
@@ -328,15 +351,14 @@ void initialize_immutable_rock() {
 }
 
 void place_player() {
-    /*
-    struct Room room = rooms[0];
-    int x = random_int(room.start_x, room.end_x, 100);
-    int y = random_int(room.start_y, room.end_y, 500);
-    player.x = x;
-    player.y = y;
-    */
-    player.x = 96;
-    player.y = 22;
+    if (!player.x && !player.y) {
+        struct Room room = rooms[0];
+        int x = random_int(room.start_x, room.end_x, 100);
+        int y = random_int(room.start_y, room.end_y, 500);
+        player.x = x;
+        player.y = y;
+
+    }
 }
 
 int get_cell_weight(Board_Cell cell) {
@@ -352,7 +374,6 @@ int get_cell_weight(Board_Cell cell) {
     if (cell.hardness <= 254) {
         return 3;
     }
-    printf("Returning 1000, x: %d, y: %d\n", cell.x, cell.y);
     return 1000;
 }
 
@@ -416,7 +437,6 @@ Neighbors *get_tunneling_neighbors(struct Coordinate coord) {
 
 
 void set_tunneling_distance_to_player() {
-    printf("Setting tunneling distance to player\n");
     Queue * tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
@@ -514,7 +534,6 @@ Neighbors *get_non_tunneling_neighbors(struct Coordinate coord) {
 }
 
 void set_non_tunneling_distance_to_player() {
-    printf("Setting non-tunneling distance to player\n");
     Queue * non_tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
