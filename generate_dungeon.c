@@ -153,20 +153,7 @@ void decrease_priority(Queue *q, struct Coordinate coord, int priority) {
     }
 
 }
-
-void print_queue(Queue *q) {
-    printf("========\n");
-    printf("queue length: %d\n", q->length);
-    for (int i = 0; i < q->length; i++) {
-        Node node = q->nodes[i];
-        printf(" priority %d\n", node.priority);
-    }
-}
-
 // End priority queue
-
-Queue *non_tunneling_queue;
-Queue *tunneling_queue;
 
 void print_usage();
 void make_rlg_directory();
@@ -231,8 +218,6 @@ int main(int argc, char *args[]) {
         dig_rooms(NUMBER_OF_ROOMS);
         dig_cooridors();
     }
-    non_tunneling_queue = create_new_queue(HEIGHT * WIDTH);
-    tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     place_player();
     set_non_tunneling_distance_to_player();
     set_tunneling_distance_to_player();
@@ -528,7 +513,7 @@ Neighbors *get_tunneling_neighbors(struct Coordinate coord) {
 
 void set_tunneling_distance_to_player() {
     printf("Setting tunneling distance to player\n");
-    board[player.y][player.x].tunneling_distance = 0;
+    Queue * tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             struct Coordinate coord;
@@ -626,7 +611,7 @@ Neighbors *get_non_tunneling_neighbors(struct Coordinate coord) {
 
 void set_non_tunneling_distance_to_player() {
     printf("Setting non-tunneling distance to player\n");
-    board[player.y][player.x].non_tunneling_distance = 0;
+    Queue * non_tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             struct Coordinate coord;
