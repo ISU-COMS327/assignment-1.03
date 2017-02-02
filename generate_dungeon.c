@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <math.h>
 
-#define MY_INFINITY 10000
+#define MY_INFINITY 500
 #define HEIGHT 105
 #define WIDTH 160
 #define IMMUTABLE_ROCK 255
@@ -95,7 +95,7 @@ void insert_with_priority(Queue *q, struct Coordinate coord, int priority) {
     int i;
     for (i = 0; i < q->length; i++) {
         Node existing_node = q->nodes[i];
-        if (priority < existing_node.priority) {
+        if (priority <= existing_node.priority) {
             for (int j = q->length; j >= i; j--) {
                 Node node_to_shift = q->nodes[j];
                 q->nodes[j+1] = node_to_shift;
@@ -126,9 +126,12 @@ void decrease_priority(Queue *q, struct Coordinate coord, int priority) {
     node.coord = coord;
     node.priority = priority;
     int old_index;
+    int prev_pri = 0;
     for (old_index = 0; old_index < q->length; old_index++) {
        Node existing_node = q->nodes[old_index];
-       if (nodes_are_equal(node, existing_node)) {
+       if (coord.x == existing_node.coord.x && coord.y == existing_node.coord.y){
+           printf("Found!\n");
+           prev_pri = existing_node.priority;
            break;
        }
     }
@@ -141,6 +144,7 @@ void decrease_priority(Queue *q, struct Coordinate coord, int priority) {
                 q->nodes[j+1] = node_to_shift;
             }
             q->nodes[new_index] = node;
+            printf("Successfully decreased priority from %d to %d\n", prev_pri, priority);
             break;
         }
     }
@@ -228,8 +232,7 @@ int main(int argc, char *args[]) {
     tunneling_queue = create_new_queue(HEIGHT * WIDTH);
     place_player();
     set_non_tunneling_distance_to_player();
-    set_tunneling_distance_to_player();
-
+    //set_tunneling_distance_to_player();
     printf("Player x: %d, y: %d\n", player.x, player.y);
 
     print_board();
@@ -556,7 +559,7 @@ void set_tunneling_distance_to_player() {
 };
 
 int should_add_non_tunneling_neighbor(Board_Cell cell) {
-    return cell.non_tunneling_distance == MY_INFINITY && strcmp(cell.type, TYPE_ROCK) != 0;
+    return cell.hardness < 1 && cell.non_tunneling_distance ==  MY_INFINITY;
 }
 
 void add_non_tunneling_neighbor(Neighbors * neighbors, Board_Cell cell) {
@@ -621,10 +624,13 @@ void set_non_tunneling_distance_to_player() {
             struct Coordinate coord;
             coord.x = x;
             coord.y = y;
-            if (y != player.y || x != player.x) {
+            if (y == player.y && x == player.x) {
+                board[y][x].non_tunneling_distance = 0;
+            }
+            else {
                 board[y][x].non_tunneling_distance = MY_INFINITY;
             }
-            if (strcmp(board[y][x].type, TYPE_ROCK) != 0) {
+            if (board[y][x].hardness < 1) {
                 insert_with_priority(non_tunneling_queue, coord, board[y][x].non_tunneling_distance);
             }
         }
@@ -632,17 +638,18 @@ void set_non_tunneling_distance_to_player() {
     while(non_tunneling_queue->length) {
         Node min = extract_min(non_tunneling_queue);
         Board_Cell min_cell = board[min.coord.y][min.coord.x];
+        printf("got min: %d, x: %d, y: %d\n", min.priority, min_cell.x, min_cell.y);
         Neighbors * neighbors = get_non_tunneling_neighbors(min.coord);
         for (int i = 0; i < neighbors->length; i++) {
             Board_Cell neighbor_cell = neighbors->cells[i];
             Board_Cell cell = board[neighbor_cell.y][neighbor_cell.x];
             if (min_cell.non_tunneling_distance < cell.non_tunneling_distance) {
+                struct Coordinate coord;
+                coord.x = cell.x;
+                coord.y = cell.y;
                 board[cell.y][cell.x].non_tunneling_distance = min_cell.non_tunneling_distance + 1;
+                decrease_priority(non_tunneling_queue, coord, board[cell.y][cell.x].non_tunneling_distance);
             }
-            struct Coordinate coord;
-            coord.x = cell.x;
-            coord.y = cell.y;
-            insert_with_priority(non_tunneling_queue, coord, board[cell.y][cell.x].non_tunneling_distance);
         }
     }
 }
